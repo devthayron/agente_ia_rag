@@ -1,101 +1,41 @@
+import tempfile
+
 import streamlit as st
 from dotenv import load_dotenv
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.vectorstores import FAISS
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from agent import config
+from agent.rag import build_chain_from_pdf
 
 load_dotenv()
 
 
-def load_pdf(pdf_path="data/politica_rh.pdf"):  # ler o pdf e extrair o texto do pdf
-    pdf_loader = PyPDFLoader(pdf_path)
-    text = pdf_loader.load()
-    return text
+@st.cache_resource(show_spinner="Indexando documento padrão...")
+def get_chain_default():
+    return build_chain_from_pdf(config.DEFAULT_PDF)
 
 
-text_pdf = load_pdf()
+@st.cache_resource(show_spinner="Indexando documento...")
+def get_chain_from_upload(file_bytes: bytes):
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+        tmp.write(file_bytes)
+        tmp_path = tmp.name
+    return build_chain_from_pdf(tmp_path)
 
 
-def split_into_blocks(text_pdf):
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    block_list = splitter.split_documents(text_pdf)
-    return block_list
-
-
-block_list = split_into_blocks(text_pdf)
-# print(len(block_list))
-# print(block_list[0])
-# print(block_list[1])
-
-
-def create_vectorstore(block_list):
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-    vectorstore = FAISS.from_documents(block_list, embeddings)
-    return vectorstore
-
-
-vectorstore = create_vectorstore(block_list)
-
-
-def create_chain():
-
-    prompt_template = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                """Você é um assistente geral que responde perguntas sobre políticas internas com base nos documentos.
-    Use APENAS as informações do contexto abaixo para responder.
-    Se não encontrar a resposta, diga claramente que não sabe responder.
-    Responda em português do Brasil, de forma clara e objetiva.
-
-    Contexto: {context}
-
-    A pergunta: {question}
-
-    Resposta:""",
-            )
-        ]
-    )
-
-    retriever = vectorstore.as_retriever(
-        search_type="similarity", search_kwargs={"k": 4}
-    )
-
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0,
-        max_tokens=500,
-    )
-
-    chain = (
-        {"context": retriever, "question": RunnablePassthrough()}
-        | prompt_template
-        | llm
-        | StrOutputParser()
-    )
-
-    return chain
-
-
-chain = create_chain()
-
-# interface do chat
 st.title("Assistente RAG — Políticas Internas")
 
-arquivo = st.file_uploader("Selecione um arquivo", type=["pdf"])
+arquivo = st.file_uploader("Selecione um PDF (opcional)", type=["pdf"])
 
 if arquivo:
-    st.success(f"Arquivo recebido: {arquivo.name}")
+    chain = get_chain_from_upload(arquivo.getvalue())
+    st.success(f"Usando: {arquivo.name}")
+else:
+    chain = get_chain_default()
+    st.info("Usando o documento fictício padrão: politica_rh.pdf")
 
-# inicia a lista de mensagens
 if "messages" not in st.session_state:
     st.session_state["messages"] = []
 
-# exibe as mensagens na tela
 for msg in st.session_state["messages"]:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -108,6 +48,7 @@ if prompt:
 
     with st.chat_message("assistant"), st.spinner("Buscando..."):
         answer = chain.invoke(prompt)
+
         st.write(answer)
 
     st.session_state["messages"].append({"role": "assistant", "content": answer})
