@@ -3,12 +3,9 @@ import tempfile
 from pathlib import Path
 
 import streamlit as st
-from dotenv import load_dotenv
 
 from agent import config
 from agent.rag import build_chain_from_pdf
-
-load_dotenv()
 
 DEFAULT_PDF_PATH = Path(__file__).parent / config.DEFAULT_PDF
 DEFAULT_DOC_ID = DEFAULT_PDF_PATH.name
@@ -100,7 +97,7 @@ def sidebar():
                 doc_id = DEFAULT_DOC_ID
                 chain = get_chain_from_path(str(DEFAULT_PDF_PATH))
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             st.error(
                 "Não foi possível indexar o documento. "
                 "Verifique se o Ollama está rodando e se os modelos foram baixados.\n\n"
@@ -139,9 +136,9 @@ def handle_chat(chain):
         try:
             answer = chain.invoke(prompt)
 
-        except Exception:
+        except Exception as e:  # noqa: BLE001
             answer = (
-                "Erro ao gerar a resposta. "
+                f"Erro ao gerar a resposta. {e}\n\n"
                 "Verifique se o Ollama está rodando (`ollama serve`)."
             )
         st.write(answer)

@@ -2,6 +2,14 @@
 
 Assistente de IA interno e local que responde perguntas com base nos documentos da empresa. Sem custo de API e sem enviar dados para fora.
 
+## Demonstração
+
+![Demonstração do assistente RAG local](assets/demo.gif)
+
+---
+
+# Como funciona
+
 1. O PDF é carregado e dividido em trechos (chunks).
 2. Cada trecho vira um vetor (embedding) e é indexado no FAISS.
 3. A pergunta busca os trechos mais parecidos.
@@ -36,32 +44,41 @@ Confirme a instalação:
 ollama --version
 ```
 
-### 2. Baixar os dois modelos de IA local
+### 2. Escolher os modelos locais
 
-O projeto usa **dois modelos**: um de linguagem (gera a resposta) e um de embeddings (indexa e busca nos PDFs).
+O projeto usa **dois modelos**: um de **chat** (gera a resposta) e um de **embedding** (indexa e busca nos PDFs). Escolha de acordo com o seu PC:
+
+| Perfil do PC                    | Chat (LLM)        | Embedding            |
+| ------------------------------- | ----------------- | -------------------- |
+| Leve: até 8 GB de RAM, sem GPU | `llama3.2:1b`   | `nomic-embed-text` |
+| Potente: 16 GB+ de RAM ou GPU   | `llama3.2` (3B) | `bge-m3`           |
+
+- **Chat:** quanto maior o modelo, melhor a resposta, mas mais RAM/VRAM e mais lento.
+- **Embedding:** `nomic-embed-text` é leve e rápido; `bge-m3` é multilíngue e busca melhor em português, mas é mais pesado.
+
+Baixe os dois que você escolheu (exemplo com o perfil potente):
 
 ```bash
-# Modelo de linguagem (LLM)
 ollama pull llama3.2
-
-# Modelo de embeddings
-ollama pull nomic-embed-text
+ollama pull bge-m3
 ```
 
-Páginas dos modelos:
+Outros modelos: https://ollama.com/library
 
-- https://ollama.com/library/llama3.2
-- https://ollama.com/library/nomic-embed-text
+Depois, **coloque os mesmos nomes** em `agent/config.py`:
 
-> Nota: modelos leves, feitos para PCs comuns. Para usar outro conforme seu hardware, rode `ollama pull <modelo>` e altere o nome em `agent/config.py`
+```python
+LLM_MODEL = "llama3.2:latest"
+EMBEDDING_MODEL = "bge-m3:latest"
+```
+
+> **Importante:** se você trocar o modelo de embedding, reinicie o app. Vetores de modelos diferentes não são compatíveis.
 
 Verifique se baixaram:
 
 ```bash
 ollama list
 ```
-
-> **Importante:** os nomes acima precisam ser idênticos aos configurados em `agent/config.py`. Se você usa outros modelos lá, faça `ollama pull <nome-do-modelo>` para cada um.
 
 Se o Ollama não estiver rodando em segundo plano, inicie com:
 
@@ -77,7 +94,7 @@ git clone "https://github.com/devthayron/agente-ia-rag.git"
 cd agente-ia-rag
 
 # Criar e ativar o ambiente virtual
-python3 -m venv venv
+python -m venv venv
 
 # Windows
 venv\Scripts\activate
@@ -105,11 +122,11 @@ Abra http://localhost:8501 no navegador.
 .
 ├── app.py                  # Interface Streamlit
 ├── agent/
-│   ├── config.py           # Config do agente
-│   └── rag.py              # Pipeline RAG 
+│   ├── config.py           # Config do agente (modelos, chunks)
+│   └── rag.py              # Pipeline RAG
 ├── data/
 │   └── politica_rh.pdf
-│   
+│
 ├── requirements.txt
 └── README.md
 ```
