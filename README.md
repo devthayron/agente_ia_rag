@@ -1,6 +1,6 @@
 # Assistente RAG Local
 
-Assistente de IA interno e local que responde perguntas com base nos documentos da empresa. Sem custo de API e sem enviar dados para fora.
+Assistente de IA interno e local que responde perguntas com base nos documentos da empresa. Sem custo de API e sem enviar dados para serviços externos.
 
 ## Demonstração
 
@@ -113,7 +113,7 @@ streamlit run app.py
 
 Abra http://localhost:8501 no navegador.
 
-- Sem upload: usa o documento padrão `politica_rh.pdf`.
+- Sem upload: usa o documento padrão `politica_rh.pdf` (dados fictício).
 - Com upload: indexa o PDF enviado e responde com base nele.
 
 ## Estrutura do projeto
