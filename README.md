@@ -1,6 +1,6 @@
 # Assistente RAG Local
 
-Assistente de IA interno e local que responde perguntas com base nos documentos da empresa. Sem custo de API e sem enviar dados para serviços externos.
+Assistente de IA interno e local que responde perguntas com base nos documentos interno. Sem custo de API e sem enviar dados para serviços externos.
 
 ## Demonstração
 
